@@ -1,18 +1,18 @@
-version: '3'
-
+version: '3.8'
 services:
   minio:
     image: minio/minio:latest
-    container_name: minio
+    container_name: minio-s3-test
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"  # S3 API端口
+      - "9001:9001"  # Web管理界面端口
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - minio_data:/data
     command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    restart: always
 
 volumes:
-  minio_data:
+  minio-data:

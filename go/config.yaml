@@ -1,0 +1,6 @@
+endpoint: http://localhost:9000
+region: us-east-1
+bucket: test
+access_key_id: minioadmin
+secret_access_key: minioadmin
+use_path_style: true

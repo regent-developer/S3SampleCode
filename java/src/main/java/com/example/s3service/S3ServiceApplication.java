@@ -1,0 +1,19 @@
+package com.example.s3service;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * S3 Service Application Main Class
+ * 
+ * @author KO
+ * @since 2026-01-19
+ */
+@SpringBootApplication
+public class S3ServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(S3ServiceApplication.class, args);
+    }
+
+}

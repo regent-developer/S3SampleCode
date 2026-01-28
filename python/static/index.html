@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 功能测试界面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        
+        h2 {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        input[type="file"] {
+            padding: 3px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button.delete {
+            background-color: #f44336;
+        }
+        
+        button.delete:hover {
+            background-color: #da190b;
+        }
+        
+        button.check {
+            background-color: #2196F3;
+        }
+        
+        button.check:hover {
+            background-color: #0b7dda;
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .result.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .result.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .result.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .file-list {
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-info {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .file-actions {
+            margin-left: 10px;
+        }
+        
+        .file-actions button {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        
+        .file-actions button:last-child {
+            margin-right: 0;
+        }
+        
+        .actions {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Amazon S3 功能测试界面</h1>
+        
+        <!-- 服务端配置 -->
+        <div class="section">
+            <h2>0. 服务端配置</h2>
+            <div class="form-group">
+                <label for="serverUrl">服务端URL：</label>
+                <input type="text" id="serverUrl" placeholder="例如：http://localhost:8000" value="http://localhost:8000">
+            </div>
+            <div class="form-group">
+                <label for="bucketSelect">选择操作的存储桶：</label>
+                <select id="bucketSelect">
+                    <option value="">使用默认存储桶</option>
+                </select>
+                <button onclick="refreshBuckets()" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;">刷新</button>
+            </div>
+        </div>
+        
+        <!-- 创建存储桶 -->
+        <div class="section">
+            <h2>1. 创建S3存储桶</h2>
+            <div class="form-group">
+                <label for="bucketName">存储桶名称：</label>
+                <input type="text" id="bucketName" placeholder="例如：my-bucket">
+            </div>
+            <div class="actions">
+                <button onclick="createBucket()">创建存储桶</button>
+            </div>
+            <div id="createBucketResult" class="result"></div>
+        </div>
+        
+        <!-- 文件上传 -->
+        <div class="section">
+            <h2>2. 文件上传到 S3</h2>
+            <div class="form-group">
+                <label for="file">选择文件：</label>
+                <input type="file" id="file" name="file">
+            </div>
+            <div class="form-group">
+                <label for="objectKey">对象键（可选，默认使用文件名）：</label>
+                <input type="text" id="objectKey" placeholder="例如：my-file.txt">
+            </div>
+            <div class="actions">
+                <button onclick="uploadFile()">上传文件</button>
+            </div>
+            <div id="uploadResult" class="result"></div>
+        </div>
+        
+        <!-- 文件下载 -->
+        <div class="section">
+            <h2>3. 从 S3 下载文件</h2>
+            <div class="form-group">
+                <label for="downloadKey">对象键：</label>
+                <input type="text" id="downloadKey" placeholder="例如：my-file.txt">
+            </div>
+            <div class="actions">
+                <button onclick="downloadFile()">下载文件</button>
+            </div>
+            <div id="downloadResult" class="result"></div>
+        </div>
+        
+        <!-- 文件删除 -->
+        <div class="section">
+            <h2>4. 从 S3 删除文件</h2>
+            <div class="form-group">
+                <label for="deleteKey">对象键：</label>
+                <input type="text" id="deleteKey" placeholder="例如：my-file.txt">
+            </div>
+            <div class="actions">
+                <button class="delete" onclick="deleteFile()">删除文件</button>
+            </div>
+            <div id="deleteResult" class="result"></div>
+        </div>
+        
+        <!-- 文件存在性检查 -->
+        <div class="section">
+            <h2>5. 检查文件是否存在</h2>
+            <div class="form-group">
+                <label for="checkKey">对象键：</label>
+                <input type="text" id="checkKey" placeholder="例如：my-file.txt">
+            </div>
+            <div class="actions">
+                <button class="check" onclick="checkFileExists()">检查文件</button>
+            </div>
+            <div id="checkResult" class="result"></div>
+        </div>
+        
+        <!-- 文件列表 -->
+        <div class="section">
+            <h2>6. 列出S3存储桶中的文件</h2>
+            <div class="actions">
+                <button onclick="listFiles()">列出文件</button>
+            </div>
+            <div id="listResult" class="result"></div>
+            <div id="fileList" class="file-list"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 显示结果
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        }
+        
+        // 创建存储桶
+        function createBucket() {
+            const bucketName = document.getElementById('bucketName').value;
+            
+            if (!bucketName) {
+                showResult('createBucketResult', '请输入存储桶名称', 'error');
+                return;
+            }
+            
+            // 构建表单数据
+            const formData = new FormData();
+            formData.append('bucketName', bucketName);
+            
+            fetch(`${getServerUrl()}/api/s3/bucket`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text().then(text => {
+                        showResult('createBucketResult', text, 'success');
+                        // 刷新存储桶列表
+                        refreshBuckets();
+                    });
+                } else {
+                    return response.text().then(text => {
+                        showResult('createBucketResult', text, 'error');
+                    });
+                }
+            })
+            .catch(error => {
+                showResult('createBucketResult', '创建存储桶失败：' + error.message, 'error');
+            });
+        }
+        
+        // 获取服务端URL
+        function getServerUrl() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            return serverUrl.replace(/\/$/, ''); // 移除末尾的斜杠
+        }
+        
+        // 获取当前选择的存储桶
+        function getSelectedBucket() {
+            const bucketSelect = document.getElementById('bucketSelect');
+            return bucketSelect.value;
+        }
+        
+        // 刷新存储桶列表
+        function refreshBuckets() {
+            fetch(`${getServerUrl()}/api/s3/buckets`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(buckets => {
+                // 确保buckets是数组
+                if (!Array.isArray(buckets)) {
+                    throw new Error(`Expected an array but got ${typeof buckets}`);
+                }
+                
+                const bucketSelect = document.getElementById('bucketSelect');
+                // 清空现有选项，保留默认选项
+                bucketSelect.innerHTML = '<option value="">使用默认存储桶</option>';
+                
+                // 添加新的存储桶选项
+                buckets.forEach(bucket => {
+                    const option = document.createElement('option');
+                    option.value = bucket.name;
+                    option.textContent = bucket.name;
+                    bucketSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('刷新存储桶列表失败:', error);
+                // 显示友好的错误信息给用户
+                showResult('listResult', '获取存储桶列表失败，请检查服务端URL是否正确', 'error');
+            });
+        }
+        
+        // 文件上传
+        function uploadFile() {
+            const fileInput = document.getElementById('file');
+            const objectKey = document.getElementById('objectKey').value;
+            const selectedBucket = getSelectedBucket();
+            
+            if (!fileInput.files[0]) {
+                showResult('uploadResult', '请选择一个文件', 'error');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            if (objectKey) {
+                formData.append('key', objectKey);
+            }
+            
+            if (selectedBucket) {
+                formData.append('bucket', selectedBucket);
+            }
+            
+            fetch(`${getServerUrl()}/api/s3/upload`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                showResult('uploadResult', data, 'success');
+            })
+            .catch(error => {
+                showResult('uploadResult', '上传失败：' + error.message, 'error');
+            });
+        }
+        
+        // 文件下载
+        function downloadFile() {
+            const key = document.getElementById('downloadKey').value;
+            const selectedBucket = getSelectedBucket();
+            
+            if (!key) {
+                showResult('downloadResult', '请输入对象键', 'error');
+                return;
+            }
+            
+            let url = `${getServerUrl()}/api/s3/download/${encodeURIComponent(key)}`;
+            if (selectedBucket) {
+                url += `?bucket=${encodeURIComponent(selectedBucket)}`;
+            }
+            
+            fetch(url, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (response.ok) {
+                    showResult('downloadResult', '文件下载中...', 'info');
+                    return response.blob();
+                } else {
+                    throw new Error('下载失败');
+                }
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = key;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showResult('downloadResult', '文件下载成功', 'success');
+            })
+            .catch(error => {
+                showResult('downloadResult', '下载失败：' + error.message, 'error');
+            });
+        }
+        
+        // 文件删除
+        function deleteFile() {
+            const key = document.getElementById('deleteKey').value;
+            const selectedBucket = getSelectedBucket();
+            
+            if (!key) {
+                showResult('deleteResult', '请输入对象键', 'error');
+                return;
+            }
+            
+            let url = `${getServerUrl()}/api/s3/delete/${encodeURIComponent(key)}`;
+            if (selectedBucket) {
+                url += `?bucket=${encodeURIComponent(selectedBucket)}`;
+            }
+            
+            fetch(url, {
+                method: 'DELETE'
+            })
+            .then(response => response.text())
+            .then(data => {
+                showResult('deleteResult', data, 'success');
+            })
+            .catch(error => {
+                showResult('deleteResult', '删除失败：' + error.message, 'error');
+            });
+        }
+        
+        // 文件存在性检查
+        function checkFileExists() {
+            const key = document.getElementById('checkKey').value;
+            const selectedBucket = getSelectedBucket();
+            
+            if (!key) {
+                showResult('checkResult', '请输入对象键', 'error');
+                return;
+            }
+            
+            let url = `${getServerUrl()}/api/s3/exists/${encodeURIComponent(key)}`;
+            if (selectedBucket) {
+                url += `?bucket=${encodeURIComponent(selectedBucket)}`;
+            }
+            
+            fetch(url, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(exists => {
+                if (exists) {
+                    showResult('checkResult', `文件 "${key}" 存在于 S3 存储桶中`, 'success');
+                } else {
+                    showResult('checkResult', `文件 "${key}" 不存在于 S3 存储桶中`, 'info');
+                }
+            })
+            .catch(error => {
+                showResult('checkResult', '检查失败：' + error.message, 'error');
+            });
+        }
+        
+        // 列出文件
+        function listFiles() {
+            const selectedBucket = getSelectedBucket();
+            
+            let url = `${getServerUrl()}/api/s3/list`;
+            if (selectedBucket) {
+                url += `?bucket=${encodeURIComponent(selectedBucket)}`;
+            }
+            
+            fetch(url, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch file list');
+                }
+                return response.json();
+            })
+            .then(files => {
+                showResult('listResult', `共找到 ${files.length} 个文件`, 'success');
+                displayFileList(files);
+            })
+            .catch(error => {
+                showResult('listResult', '列出文件失败：' + error.message, 'error');
+                document.getElementById('fileList').innerHTML = '';
+            });
+        }
+        
+        // 显示文件列表
+        function displayFileList(files) {
+            const fileListElement = document.getElementById('fileList');
+            
+            if (files.length === 0) {
+                fileListElement.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">存储桶中没有文件</div>';
+                return;
+            }
+            
+            const fileItems = files.map(file => {
+                // 格式化文件大小
+                const size = formatFileSize(file.size);
+                // 格式化最后修改时间
+                const lastModified = new Date(file.lastModified).toLocaleString();
+                
+                return `
+                    <div class="file-item">
+                        <div class="file-info">
+                            <div class="file-name">${file.key}</div>
+                            <div class="file-meta">大小: ${size} | 最后修改: ${lastModified}</div>
+                        </div>
+                        <div class="file-actions">
+                            <button onclick="downloadFileFromList('${file.key}')" title="下载文件">下载</button>
+                            <button class="check" onclick="checkFileExistsFromList('${file.key}')" title="检查文件">检查</button>
+                            <button class="delete" onclick="deleteFileFromList('${file.key}')" title="删除文件">删除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            fileListElement.innerHTML = fileItems;
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 从列表下载文件
+        function downloadFileFromList(key) {
+            document.getElementById('downloadKey').value = key;
+            downloadFile();
+        }
+        
+        // 从列表检查文件
+        function checkFileExistsFromList(key) {
+            document.getElementById('checkKey').value = key;
+            checkFileExists();
+        }
+        
+        // 从列表删除文件
+        function deleteFileFromList(key) {
+            if (confirm(`确定要删除文件 "${key}" 吗？`)) {
+                document.getElementById('deleteKey').value = key;
+                deleteFile();
+                // 重新列出文件
+                listFiles();
+            }
+        }
+        
+        // 页面加载时刷新存储桶列表
+        window.onload = function() {
+            refreshBuckets();
+        };
+    </script>
+</body>
+</html>
